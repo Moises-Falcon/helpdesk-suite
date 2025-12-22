@@ -1,98 +1,90 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react'
+import { View, Text, Pressable, Alert, Platform } from 'react-native'
+import { clearSession, loadSession } from '../../src/lib/session'
+import { router } from 'expo-router'
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function HomeTab() {
+  const debugSession = async () => {
+    try {
+      console.log('DEBUG SESSION pressed')
+      const s = await loadSession()
+      console.log('SESSION:', s)
 
-export default function HomeScreen() {
+      const msg = s ? JSON.stringify(s, null, 2) : 'No hay sesión'
+      // Alert en web a veces no aparece; fallback:
+      if (Platform.OS === 'web') {
+        window.alert(msg)
+      } else {
+        Alert.alert('Sesión', msg)
+      }
+    } catch (e: any) {
+      console.log('DEBUG SESSION error:', e)
+      if (Platform.OS === 'web') window.alert(e?.message ?? String(e))
+      else Alert.alert('Error', e?.message ?? String(e))
+    }
+  }
+
+  const logout = async () => {
+    try {
+      console.log('LOGOUT pressed')
+      await clearSession()
+      console.log('SESSION cleared')
+      router.replace('/') // vuelve al RootLayout -> login
+    } catch (e: any) {
+      console.log('LOGOUT error:', e)
+      if (Platform.OS === 'web') window.alert(e?.message ?? String(e))
+      else Alert.alert('Error', e?.message ?? String(e))
+    }
+  }
+
+  const goTickets = () => {
+    console.log('GO TICKETS pressed')
+    router.push('/tickets')
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={{ flex: 1, padding: 16, gap: 12 }}>
+      <Text style={{ fontSize: 22, fontWeight: '700' }}>✅ Logueado</Text>
+      <Text>Si estás viendo esto, el login funcionó y ya estás dentro.</Text>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+      <Pressable
+        onPress={debugSession}
+        style={{
+          padding: 14,
+          borderWidth: 1,
+          borderRadius: 10,
+          alignItems: 'center',
+          backgroundColor: '#f5f5f5',
+        }}
+      >
+        <Text>Ver sesión</Text>
+      </Pressable>
+
+      <Pressable
+        onPress={goTickets}
+        style={{
+          padding: 14,
+          borderWidth: 1,
+          borderRadius: 10,
+          alignItems: 'center',
+          backgroundColor: '#f5f5f5',
+        }}
+      >
+        <Text>Ir a Tickets</Text>
+      </Pressable>
+
+      <Pressable
+        onPress={logout}
+        style={{
+          padding: 14,
+          borderWidth: 1,
+          borderRadius: 10,
+          alignItems: 'center',
+          backgroundColor: '#f5f5f5',
+        }}
+      >
+        <Text>Cerrar sesión</Text>
+      </Pressable>
+    </View>
+  )
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
