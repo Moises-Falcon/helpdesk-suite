@@ -1,3 +1,4 @@
+// app/tickets.tsx
 import React, { useEffect, useState } from 'react'
 import { View, Text, Pressable, FlatList, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
@@ -36,6 +37,10 @@ export default function TicketsScreen() {
   useEffect(() => {
     loadTickets()
   }, [])
+
+  function goHome() {
+    router.replace('/(tabs)')
+  }
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
@@ -89,10 +94,10 @@ export default function TicketsScreen() {
       )}
 
       <Pressable
-        onPress={() => router.back()}
+        onPress={goHome}
         style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
       >
-        <Text>Volver</Text>
+        <Text>Ir a Home</Text>
       </Pressable>
     </View>
   )

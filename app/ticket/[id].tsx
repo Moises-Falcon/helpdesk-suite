@@ -1,3 +1,4 @@
+// app/ticket/[id].tsx
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native'
@@ -20,9 +21,16 @@ export default function TicketDetail() {
     setLoading(false)
   }
 
-  function goBackSafe() {
-    if (router.canGoBack()) router.back()
-    else router.replace('/tickets') // fallback si abriste directo la URL
+  function goList() {
+    router.replace('/tickets')
+  }
+
+  function goHome() {
+    router.replace('/(tabs)')
+  }
+
+  function goEdit() {
+    router.push(`/ticket/edit/${id}`)
   }
 
   useEffect(() => {
@@ -42,10 +50,10 @@ export default function TicketDetail() {
       <View style={{ flex: 1, padding: 16, gap: 12 }}>
         <Text>No se encontró el ticket.</Text>
         <Pressable
-          onPress={goBackSafe}
+          onPress={goList}
           style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
         >
-          <Text>Volver</Text>
+          <Text>Ir a lista</Text>
         </Pressable>
       </View>
     )
@@ -89,11 +97,27 @@ export default function TicketDetail() {
       </Pressable>
 
       <Pressable
-        onPress={goBackSafe}
+        onPress={goEdit}
         style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
       >
-        <Text>Volver</Text>
+        <Text>Editar</Text>
       </Pressable>
+
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Pressable
+          onPress={goList}
+          style={{ flex: 1, padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+        >
+          <Text>Ir a lista</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={goHome}
+          style={{ flex: 1, padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+        >
+          <Text>Ir a Home</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   )
 }

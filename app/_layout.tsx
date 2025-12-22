@@ -1,3 +1,4 @@
+// app/_layout.tsx
 import React, { useEffect, useState } from 'react'
 import { View, ActivityIndicator } from 'react-native'
 import { Stack } from 'expo-router'
@@ -29,8 +30,18 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack>
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* Tabs (Home / Explore) */}
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+      {/* Tickets flow */}
+      <Stack.Screen name="tickets" />
+      <Stack.Screen name="ticket-new" />
+      <Stack.Screen name="ticket/[id]" />
+      <Stack.Screen name="ticket/edit/[id]" />
+
+      {/* Optional modal route if you use it */}
+      <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
     </Stack>
   )
 }

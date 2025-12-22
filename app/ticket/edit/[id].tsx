@@ -1,11 +1,12 @@
-// app/ticket-new.tsx
+// app/ticket/edit/[id].tsx
+import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { Text, TextInput, Pressable, Alert, ScrollView, View } from 'react-native'
-import { router } from 'expo-router'
-import { supabase } from '../src/lib/supabase'
-import { loadSession } from '../src/lib/session'
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { supabase } from '../../../src/lib/supabase'
 
-export default function TicketNew() {
+export default function TicketEdit() {
+  const { id } = useLocalSearchParams<{ id: string }>()
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   const [customerName, setCustomerName] = useState('')
@@ -14,30 +15,32 @@ export default function TicketNew() {
   const [locationOptional, setLocationOptional] = useState('')
   const [problemEs, setProblemEs] = useState('')
   const [solutionEs, setSolutionEs] = useState('')
-
   const [shortEn, setShortEn] = useState('')
   const [longEn, setLongEn] = useState('')
   const [resolutionEn, setResolutionEn] = useState('')
+  const [status, setStatus] = useState<'open' | 'resolved'>('open')
 
-  useEffect(() => {
-    const title = problemEs.trim()
-      ? `User reported: ${problemEs.trim().slice(0, 60)}`
-      : ''
-    setShortEn(title)
+  async function load() {
+    setLoading(true)
+    const { data, error } = await supabase.from('tickets').select('*').eq('id', id).single()
+    if (error) {
+      Alert.alert('Error', error.message)
+      setLoading(false)
+      return
+    }
 
-    const long = problemEs.trim()
-      ? `Request from user.\n\nDetails (Spanish input):\n${problemEs.trim()}\n`
-      : ''
-    setLongEn(long)
+    setCustomerName(data.customer_name ?? '')
+    setSid(data.sid ?? '')
+    setFloor(data.floor ?? '')
+    setLocationOptional(data.location_optional ?? '')
+    setProblemEs(data.problem_es ?? '')
+    setSolutionEs(data.solution_es ?? '')
+    setShortEn(data.short_en ?? '')
+    setLongEn(data.long_en ?? '')
+    setResolutionEn(data.resolution_en ?? '')
+    setStatus((data.status ?? 'open') as 'open' | 'resolved')
 
-    const res = solutionEs.trim()
-      ? `Resolution:\n${solutionEs.trim()}`
-      : ''
-    setResolutionEn(res)
-  }, [problemEs, solutionEs])
-
-  function goList() {
-    router.replace('/tickets')
+    setLoading(false)
   }
 
   async function save() {
@@ -47,11 +50,7 @@ export default function TicketNew() {
 
     setSaving(true)
     try {
-      const session = await loadSession()
-      if (!session?.id) throw new Error('No hay sesión. Cierra sesión y vuelve a iniciar.')
-
       const payload = {
-        created_by: session.id,
         customer_name: customerName.trim(),
         sid: sid.trim(),
         floor: floor.trim(),
@@ -61,14 +60,13 @@ export default function TicketNew() {
         short_en: shortEn.trim() || null,
         long_en: longEn.trim() || null,
         resolution_en: resolutionEn.trim() || null,
-        status: solutionEs.trim() ? 'resolved' : 'open',
+        status: (solutionEs.trim() ? 'resolved' : status) as 'open' | 'resolved',
       }
 
-      const { data, error } = await supabase.from('tickets').insert(payload).select('id').single()
+      const { error } = await supabase.from('tickets').update(payload).eq('id', id)
       if (error) throw error
 
-      // IMPORTANTE: replace para que NO regrese a "crear" y cree otro por accidente
-      router.replace(`/ticket/${data.id}`)
+      router.replace(`/ticket/${id}`)
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? String(e))
     } finally {
@@ -76,9 +74,22 @@ export default function TicketNew() {
     }
   }
 
+  useEffect(() => {
+    load()
+  }, [id])
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    )
+  }
+
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
-      <Text style={{ fontSize: 22, fontWeight: '700' }}>➕ Nuevo Ticket</Text>
+      <Text style={{ fontSize: 22, fontWeight: '700' }}>✏️ Editar Ticket</Text>
+      <Text style={{ opacity: 0.7 }}>ID: {id}</Text>
 
       <Text>Nombre</Text>
       <TextInput
@@ -125,7 +136,7 @@ export default function TicketNew() {
         style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
       />
 
-      <Text style={{ marginTop: 10, fontWeight: '700' }}>Generado en inglés (placeholder)</Text>
+      <Text style={{ marginTop: 10, fontWeight: '700' }}>Campos EN</Text>
 
       <Text>Título breve (EN)</Text>
       <TextInput
@@ -161,24 +172,15 @@ export default function TicketNew() {
           opacity: saving ? 0.6 : 1,
         }}
       >
-        <Text>{saving ? 'Guardando...' : 'Guardar ticket'}</Text>
+        <Text>{saving ? 'Guardando...' : 'Guardar cambios'}</Text>
       </Pressable>
 
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Pressable
-          onPress={goList}
-          style={{ flex: 1, padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
-        >
-          <Text>Ir a lista</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.replace('/(tabs)')}
-          style={{ flex: 1, padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
-        >
-          <Text>Ir a Home</Text>
-        </Pressable>
-      </View>
+      <Pressable
+        onPress={() => router.replace(`/ticket/${id}`)}
+        style={{ padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+      >
+        <Text>Cancelar</Text>
+      </Pressable>
     </ScrollView>
   )
 }
