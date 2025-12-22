@@ -1,6 +1,6 @@
+import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { View, Text, ActivityIndicator, Pressable, Alert, ScrollView } from 'react-native'
-import { useLocalSearchParams, router } from 'expo-router'
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native'
 import { supabase } from '../../src/lib/supabase'
 
 export default function TicketDetail() {
