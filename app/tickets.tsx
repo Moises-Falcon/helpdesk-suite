@@ -1,104 +1,170 @@
-// app/tickets.tsx
+// app/ticket-new.tsx
 import React, { useEffect, useState } from 'react'
-import { View, Text, Pressable, FlatList, ActivityIndicator } from 'react-native'
+import { Text, TextInput, Pressable, Alert, ScrollView } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '../src/lib/supabase'
+import { loadSession } from '../src/lib/session'
 
-type TicketRow = {
-  id: string
-  created_at: string
-  customer_name: string
-  sid: string
-  floor: string
-  status: 'open' | 'resolved'
-  short_en: string | null
-}
+export default function TicketNew() {
+  const [saving, setSaving] = useState(false)
 
-export default function TicketsScreen() {
-  const [loading, setLoading] = useState(true)
-  const [items, setItems] = useState<TicketRow[]>([])
+  const [customerName, setCustomerName] = useState('')
+  const [sid, setSid] = useState('')
+  const [floor, setFloor] = useState('')
+  const [locationOptional, setLocationOptional] = useState('')
+  const [problemEs, setProblemEs] = useState('')
+  const [solutionEs, setSolutionEs] = useState('')
 
-  async function loadTickets() {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('tickets')
-      .select('id, created_at, customer_name, sid, floor, status, short_en')
-      .order('created_at', { ascending: false })
+  // OJO: en DB siguen llamándose *_en, pero aquí los manejamos en español
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [resolution, setResolution] = useState('')
 
-    if (error) {
-      console.log('LOAD tickets error:', error)
-      setItems([])
-    } else {
-      setItems((data ?? []) as TicketRow[])
-    }
-    setLoading(false)
-  }
-
+  // Autogenerado (pero editable)
   useEffect(() => {
-    loadTickets()
-  }, [])
+    const p = problemEs.trim()
+    const s = solutionEs.trim()
 
-  function goHome() {
-    router.replace('/(tabs)')
+    setTitle(p ? `Reporte: ${p.slice(0, 60)}` : '')
+    setDescription(p ? `Solicitud del usuario.\n\nDetalles:\n${p}\n` : '')
+    setResolution(s ? `Resolución:\n${s}` : '')
+  }, [problemEs, solutionEs])
+
+  async function save() {
+    if (!customerName.trim() || !sid.trim() || !floor.trim() || !problemEs.trim()) {
+      return Alert.alert('Faltan datos', 'Nombre, SID, Piso y Problema son obligatorios.')
+    }
+
+    setSaving(true)
+    try {
+      const session = await loadSession()
+      if (!session?.id) throw new Error('No hay sesión. Cierra sesión y vuelve a iniciar.')
+
+      const payload = {
+        created_by: session.id,
+        customer_name: customerName.trim(),
+        sid: sid.trim(),
+        floor: floor.trim(),
+        location_optional: locationOptional.trim() || null,
+        problem_es: problemEs.trim(),
+        solution_es: solutionEs.trim() || null,
+
+        // Guardamos en columnas *_en pero en contenido español
+        short_en: title.trim() || null,
+        long_en: description.trim() || null,
+        resolution_en: resolution.trim() || null,
+
+        status: solutionEs.trim() ? 'resolved' : 'open',
+      }
+
+      const { data, error } = await supabase.from('tickets').insert(payload).select('id').single()
+      if (error) throw error
+
+      // ✅ coherente: después de crear, vas al detalle del ticket
+      router.replace(`/ticket/${data.id}`)
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? String(e))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
-    <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 22, fontWeight: '700' }}>🎫 Tickets</Text>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
+      <Text style={{ fontSize: 22, fontWeight: '800' }}>➕ Nuevo Ticket</Text>
 
-        <Pressable
-          onPress={() => router.push('/ticket-new')}
-          style={{ paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderRadius: 10 }}
-        >
-          <Text>+ Nuevo</Text>
-        </Pressable>
-      </View>
+      <Text style={{ fontWeight: '800' }}>Nombre</Text>
+      <TextInput
+        value={customerName}
+        onChangeText={setCustomerName}
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>SID</Text>
+      <TextInput
+        value={sid}
+        onChangeText={setSid}
+        autoCapitalize="none"
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>Piso</Text>
+      <TextInput
+        value={floor}
+        onChangeText={setFloor}
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>Ubicación (opcional)</Text>
+      <TextInput
+        value={locationOptional}
+        onChangeText={setLocationOptional}
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>Problema</Text>
+      <TextInput
+        value={problemEs}
+        onChangeText={setProblemEs}
+        multiline
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>Solución (opcional)</Text>
+      <TextInput
+        value={solutionEs}
+        onChangeText={setSolutionEs}
+        multiline
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
+      />
+
+      <Text style={{ marginTop: 10, fontWeight: '800' }}>
+        Resumen del ticket (auto-generado, puedes editarlo)
+      </Text>
+
+      <Text style={{ fontWeight: '800' }}>Título</Text>
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>Descripción</Text>
+      <TextInput
+        value={description}
+        onChangeText={setDescription}
+        multiline
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 110 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>Resolución</Text>
+      <TextInput
+        value={resolution}
+        onChangeText={setResolution}
+        multiline
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
+      />
 
       <Pressable
-        onPress={loadTickets}
-        style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+        onPress={save}
+        disabled={saving}
+        style={{
+          padding: 14,
+          borderWidth: 1,
+          borderRadius: 10,
+          alignItems: 'center',
+          opacity: saving ? 0.6 : 1,
+        }}
       >
-        <Text>Recargar</Text>
+        <Text>{saving ? 'Guardando...' : 'Guardar ticket'}</Text>
       </Pressable>
-
-      {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" />
-          <Text style={{ marginTop: 8 }}>Cargando...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(t) => t.id}
-          ListEmptyComponent={
-            <Text style={{ opacity: 0.7, marginTop: 10 }}>
-              No hay tickets aún. Crea el primero con “+ Nuevo”.
-            </Text>
-          }
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => router.push(`/ticket/${item.id}`)}
-              style={{ borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 10 }}
-            >
-              <Text style={{ fontWeight: '700' }}>{item.short_en ?? '(sin título)'}</Text>
-              <Text style={{ opacity: 0.75 }}>
-                {item.customer_name} • SID {item.sid} • Piso {item.floor}
-              </Text>
-              <Text style={{ marginTop: 6 }}>
-                Estado: <Text style={{ fontWeight: '700' }}>{item.status}</Text>
-              </Text>
-            </Pressable>
-          )}
-        />
-      )}
 
       <Pressable
-        onPress={goHome}
-        style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+        onPress={() => router.replace('/tickets')}
+        style={{ padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
       >
-        <Text>Ir a Home</Text>
+        <Text>Cancelar</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   )
 }

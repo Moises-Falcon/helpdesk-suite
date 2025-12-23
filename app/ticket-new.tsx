@@ -1,6 +1,6 @@
 // app/ticket-new.tsx
 import React, { useEffect, useState } from 'react'
-import { Text, TextInput, Pressable, Alert, ScrollView, View } from 'react-native'
+import { Text, TextInput, Pressable, Alert, ScrollView } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '../src/lib/supabase'
 import { loadSession } from '../src/lib/session'
@@ -15,30 +15,18 @@ export default function TicketNew() {
   const [problemEs, setProblemEs] = useState('')
   const [solutionEs, setSolutionEs] = useState('')
 
-  const [shortEn, setShortEn] = useState('')
-  const [longEn, setLongEn] = useState('')
-  const [resolutionEn, setResolutionEn] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [resolution, setResolution] = useState('')
 
   useEffect(() => {
-    const title = problemEs.trim()
-      ? `User reported: ${problemEs.trim().slice(0, 60)}`
-      : ''
-    setShortEn(title)
+    const p = problemEs.trim()
+    const s = solutionEs.trim()
 
-    const long = problemEs.trim()
-      ? `Request from user.\n\nDetails (Spanish input):\n${problemEs.trim()}\n`
-      : ''
-    setLongEn(long)
-
-    const res = solutionEs.trim()
-      ? `Resolution:\n${solutionEs.trim()}`
-      : ''
-    setResolutionEn(res)
+    setTitle(p ? `Reporte: ${p.slice(0, 60)}` : '')
+    setDescription(p ? `Solicitud del usuario.\n\nDetalles:\n${p}\n` : '')
+    setResolution(s ? `Resolución:\n${s}` : '')
   }, [problemEs, solutionEs])
-
-  function goList() {
-    router.replace('/tickets')
-  }
 
   async function save() {
     if (!customerName.trim() || !sid.trim() || !floor.trim() || !problemEs.trim()) {
@@ -58,16 +46,18 @@ export default function TicketNew() {
         location_optional: locationOptional.trim() || null,
         problem_es: problemEs.trim(),
         solution_es: solutionEs.trim() || null,
-        short_en: shortEn.trim() || null,
-        long_en: longEn.trim() || null,
-        resolution_en: resolutionEn.trim() || null,
+
+        // ✅ nuevas columnas
+        title: title.trim() || null,
+        description: description.trim() || null,
+        resolution: resolution.trim() || null,
+
         status: solutionEs.trim() ? 'resolved' : 'open',
       }
 
       const { data, error } = await supabase.from('tickets').insert(payload).select('id').single()
       if (error) throw error
 
-      // IMPORTANTE: replace para que NO regrese a "crear" y cree otro por accidente
       router.replace(`/ticket/${data.id}`)
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? String(e))
@@ -78,107 +68,44 @@ export default function TicketNew() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
-      <Text style={{ fontSize: 22, fontWeight: '700' }}>➕ Nuevo Ticket</Text>
+      <Text style={{ fontSize: 22, fontWeight: '800' }}>➕ Nuevo Ticket</Text>
 
-      <Text>Nombre</Text>
-      <TextInput
-        value={customerName}
-        onChangeText={setCustomerName}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
+      <Text style={{ fontWeight: '800' }}>Nombre</Text>
+      <TextInput value={customerName} onChangeText={setCustomerName} style={{ borderWidth: 1, padding: 10, borderRadius: 8 }} />
 
-      <Text>SID</Text>
-      <TextInput
-        value={sid}
-        onChangeText={setSid}
-        autoCapitalize="none"
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
+      <Text style={{ fontWeight: '800' }}>SID</Text>
+      <TextInput value={sid} onChangeText={setSid} autoCapitalize="none" style={{ borderWidth: 1, padding: 10, borderRadius: 8 }} />
 
-      <Text>Piso</Text>
-      <TextInput
-        value={floor}
-        onChangeText={setFloor}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
+      <Text style={{ fontWeight: '800' }}>Piso</Text>
+      <TextInput value={floor} onChangeText={setFloor} style={{ borderWidth: 1, padding: 10, borderRadius: 8 }} />
 
-      <Text>Ubicación (opcional)</Text>
-      <TextInput
-        value={locationOptional}
-        onChangeText={setLocationOptional}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
+      <Text style={{ fontWeight: '800' }}>Ubicación (opcional)</Text>
+      <TextInput value={locationOptional} onChangeText={setLocationOptional} style={{ borderWidth: 1, padding: 10, borderRadius: 8 }} />
 
-      <Text>Problema (ES)</Text>
-      <TextInput
-        value={problemEs}
-        onChangeText={setProblemEs}
-        multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
-      />
+      <Text style={{ fontWeight: '800' }}>Problema</Text>
+      <TextInput value={problemEs} onChangeText={setProblemEs} multiline style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }} />
 
-      <Text>Solución (ES) (opcional)</Text>
-      <TextInput
-        value={solutionEs}
-        onChangeText={setSolutionEs}
-        multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
-      />
+      <Text style={{ fontWeight: '800' }}>Solución (opcional)</Text>
+      <TextInput value={solutionEs} onChangeText={setSolutionEs} multiline style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }} />
 
-      <Text style={{ marginTop: 10, fontWeight: '700' }}>Generado en inglés (placeholder)</Text>
+      <Text style={{ marginTop: 10, fontWeight: '800' }}>Resumen del ticket (auto-generado, puedes editarlo)</Text>
 
-      <Text>Título breve (EN)</Text>
-      <TextInput
-        value={shortEn}
-        onChangeText={setShortEn}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
+      <Text style={{ fontWeight: '800' }}>Título</Text>
+      <TextInput value={title} onChangeText={setTitle} style={{ borderWidth: 1, padding: 10, borderRadius: 8 }} />
 
-      <Text>Descripción larga (EN)</Text>
-      <TextInput
-        value={longEn}
-        onChangeText={setLongEn}
-        multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 110 }}
-      />
+      <Text style={{ fontWeight: '800' }}>Descripción</Text>
+      <TextInput value={description} onChangeText={setDescription} multiline style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 110 }} />
 
-      <Text>Resolución (EN)</Text>
-      <TextInput
-        value={resolutionEn}
-        onChangeText={setResolutionEn}
-        multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
-      />
+      <Text style={{ fontWeight: '800' }}>Resolución</Text>
+      <TextInput value={resolution} onChangeText={setResolution} multiline style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }} />
 
-      <Pressable
-        onPress={save}
-        disabled={saving}
-        style={{
-          padding: 14,
-          borderWidth: 1,
-          borderRadius: 10,
-          alignItems: 'center',
-          opacity: saving ? 0.6 : 1,
-        }}
-      >
+      <Pressable onPress={save} disabled={saving} style={{ padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center', opacity: saving ? 0.6 : 1 }}>
         <Text>{saving ? 'Guardando...' : 'Guardar ticket'}</Text>
       </Pressable>
 
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Pressable
-          onPress={goList}
-          style={{ flex: 1, padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
-        >
-          <Text>Ir a lista</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.replace('/(tabs)')}
-          style={{ flex: 1, padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
-        >
-          <Text>Ir a Home</Text>
-        </Pressable>
-      </View>
+      <Pressable onPress={() => router.replace('/tickets')} style={{ padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}>
+        <Text>Cancelar</Text>
+      </Pressable>
     </ScrollView>
   )
 }

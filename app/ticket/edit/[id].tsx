@@ -4,6 +4,10 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { supabase } from '../../../src/lib/supabase'
 
+function isUuid(v: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+}
+
 export default function TicketEdit() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const [loading, setLoading] = useState(true)
@@ -15,17 +19,22 @@ export default function TicketEdit() {
   const [locationOptional, setLocationOptional] = useState('')
   const [problemEs, setProblemEs] = useState('')
   const [solutionEs, setSolutionEs] = useState('')
-  const [shortEn, setShortEn] = useState('')
-  const [longEn, setLongEn] = useState('')
-  const [resolutionEn, setResolutionEn] = useState('')
-  const [status, setStatus] = useState<'open' | 'resolved'>('open')
+  const [shortTitle, setShortTitle] = useState('')
 
   async function load() {
+    if (!id || typeof id !== 'string') return
+    if (!isUuid(id)) {
+      router.replace('/tickets')
+      return
+    }
+
     setLoading(true)
     const { data, error } = await supabase.from('tickets').select('*').eq('id', id).single()
+
     if (error) {
+      console.log('LOAD ticket edit error:', error)
       Alert.alert('Error', error.message)
-      setLoading(false)
+      router.replace('/tickets')
       return
     }
 
@@ -35,17 +44,19 @@ export default function TicketEdit() {
     setLocationOptional(data.location_optional ?? '')
     setProblemEs(data.problem_es ?? '')
     setSolutionEs(data.solution_es ?? '')
-    setShortEn(data.short_en ?? '')
-    setLongEn(data.long_en ?? '')
-    setResolutionEn(data.resolution_en ?? '')
-    setStatus((data.status ?? 'open') as 'open' | 'resolved')
-
+    setShortTitle(data.short_en ?? '')
     setLoading(false)
   }
 
+  useEffect(() => {
+    load()
+  }, [id])
+
   async function save() {
+    if (!id || typeof id !== 'string' || !isUuid(id)) return
     if (!customerName.trim() || !sid.trim() || !floor.trim() || !problemEs.trim()) {
-      return Alert.alert('Faltan datos', 'Nombre, SID, Piso y Problema son obligatorios.')
+      Alert.alert('Faltan datos', 'Nombre, SID, Piso y Problema son obligatorios.')
+      return
     }
 
     setSaving(true)
@@ -57,13 +68,12 @@ export default function TicketEdit() {
         location_optional: locationOptional.trim() || null,
         problem_es: problemEs.trim(),
         solution_es: solutionEs.trim() || null,
-        short_en: shortEn.trim() || null,
-        long_en: longEn.trim() || null,
-        resolution_en: resolutionEn.trim() || null,
-        status: (solutionEs.trim() ? 'resolved' : status) as 'open' | 'resolved',
+        short_en: shortTitle.trim() || null,
+        status: solutionEs.trim() ? 'resolved' : 'open',
       }
 
       const { error } = await supabase.from('tickets').update(payload).eq('id', id)
+
       if (error) throw error
 
       router.replace(`/ticket/${id}`)
@@ -73,10 +83,6 @@ export default function TicketEdit() {
       setSaving(false)
     }
   }
-
-  useEffect(() => {
-    load()
-  }, [id])
 
   if (loading) {
     return (
@@ -88,17 +94,24 @@ export default function TicketEdit() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
-      <Text style={{ fontSize: 22, fontWeight: '700' }}>✏️ Editar Ticket</Text>
+      <Text style={{ fontSize: 22, fontWeight: '800' }}>✏️ Editar Ticket</Text>
       <Text style={{ opacity: 0.7 }}>ID: {id}</Text>
 
-      <Text>Nombre</Text>
+      <Text style={{ fontWeight: '800' }}>Título</Text>
+      <TextInput
+        value={shortTitle}
+        onChangeText={setShortTitle}
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>Nombre</Text>
       <TextInput
         value={customerName}
         onChangeText={setCustomerName}
         style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
       />
 
-      <Text>SID</Text>
+      <Text style={{ fontWeight: '800' }}>SID</Text>
       <TextInput
         value={sid}
         onChangeText={setSid}
@@ -106,59 +119,34 @@ export default function TicketEdit() {
         style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
       />
 
-      <Text>Piso</Text>
+      <Text style={{ fontWeight: '800' }}>Piso</Text>
       <TextInput
         value={floor}
         onChangeText={setFloor}
         style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
       />
 
-      <Text>Ubicación (opcional)</Text>
+      <Text style={{ fontWeight: '800' }}>Ubicación (opcional)</Text>
       <TextInput
         value={locationOptional}
         onChangeText={setLocationOptional}
         style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
       />
 
-      <Text>Problema (ES)</Text>
+      <Text style={{ fontWeight: '800' }}>Problema</Text>
       <TextInput
         value={problemEs}
         onChangeText={setProblemEs}
         multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 110 }}
       />
 
-      <Text>Solución (ES) (opcional)</Text>
+      <Text style={{ fontWeight: '800' }}>Solución (opcional)</Text>
       <TextInput
         value={solutionEs}
         onChangeText={setSolutionEs}
         multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
-      />
-
-      <Text style={{ marginTop: 10, fontWeight: '700' }}>Campos EN</Text>
-
-      <Text>Título breve (EN)</Text>
-      <TextInput
-        value={shortEn}
-        onChangeText={setShortEn}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
-
-      <Text>Descripción larga (EN)</Text>
-      <TextInput
-        value={longEn}
-        onChangeText={setLongEn}
-        multiline
         style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 110 }}
-      />
-
-      <Text>Resolución (EN)</Text>
-      <TextInput
-        value={resolutionEn}
-        onChangeText={setResolutionEn}
-        multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
       />
 
       <Pressable

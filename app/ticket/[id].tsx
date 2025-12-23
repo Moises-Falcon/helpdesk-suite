@@ -1,8 +1,12 @@
 // app/ticket/[id].tsx
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { supabase } from '../../src/lib/supabase'
+
+function isUuid(v: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+}
 
 export default function TicketDetail() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -10,27 +14,24 @@ export default function TicketDetail() {
   const [t, setT] = useState<any>(null)
 
   async function load() {
+    if (!id || typeof id !== 'string') return
+
+    // ✅ evita el bug si llega "tickets"
+    if (!isUuid(id)) {
+      router.replace('/tickets')
+      return
+    }
+
     setLoading(true)
     const { data, error } = await supabase.from('tickets').select('*').eq('id', id).single()
+
     if (error) {
-      Alert.alert('Error', error.message)
+      console.log('LOAD ticket error:', error)
       setT(null)
     } else {
       setT(data)
     }
     setLoading(false)
-  }
-
-  function goList() {
-    router.replace('/tickets')
-  }
-
-  function goHome() {
-    router.replace('/(tabs)')
-  }
-
-  function goEdit() {
-    router.push(`/ticket/edit/${id}`)
   }
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function TicketDetail() {
       <View style={{ flex: 1, padding: 16, gap: 12 }}>
         <Text>No se encontró el ticket.</Text>
         <Pressable
-          onPress={goList}
+          onPress={() => router.replace('/tickets')}
           style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
         >
           <Text>Ir a lista</Text>
@@ -61,33 +62,34 @@ export default function TicketDetail() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
-      <Text style={{ fontSize: 22, fontWeight: '700' }}>🎫 Ticket</Text>
+      <Text style={{ fontSize: 22, fontWeight: '800' }}>🎟️ Ticket</Text>
       <Text style={{ opacity: 0.7 }}>ID: {t.id}</Text>
 
-      <Text style={{ fontWeight: '700' }}>Título (EN)</Text>
+      <Text style={{ fontWeight: '800' }}>Título</Text>
       <Text>{t.short_en ?? '-'}</Text>
 
-      <Text style={{ fontWeight: '700' }}>Solicitante</Text>
+      <Text style={{ fontWeight: '800' }}>Solicitante</Text>
       <Text>
         {t.customer_name} • SID {t.sid} • Piso {t.floor}
       </Text>
       <Text>Ubicación: {t.location_optional ?? '-'}</Text>
 
-      <Text style={{ fontWeight: '700' }}>Problema (ES)</Text>
+      <Text style={{ fontWeight: '800' }}>Problema</Text>
       <Text>{t.problem_es}</Text>
 
-      <Text style={{ fontWeight: '700' }}>Solución (ES)</Text>
+      <Text style={{ fontWeight: '800' }}>Solución</Text>
       <Text>{t.solution_es ?? '-'}</Text>
 
-      <Text style={{ fontWeight: '700' }}>Descripción larga (EN)</Text>
-      <Text>{t.long_en ?? '-'}</Text>
-
-      <Text style={{ fontWeight: '700' }}>Resolución (EN)</Text>
-      <Text>{t.resolution_en ?? '-'}</Text>
-
       <Text>
-        Estado: <Text style={{ fontWeight: '700' }}>{t.status}</Text>
+        Estado: <Text style={{ fontWeight: '800' }}>{t.status}</Text>
       </Text>
+
+      <Pressable
+        onPress={() => router.push(`/ticket/edit/${t.id}`)}
+        style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+      >
+        <Text>Editar</Text>
+      </Pressable>
 
       <Pressable
         onPress={load}
@@ -97,27 +99,18 @@ export default function TicketDetail() {
       </Pressable>
 
       <Pressable
-        onPress={goEdit}
+        onPress={() => router.replace('/tickets')}
         style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
       >
-        <Text>Editar</Text>
+        <Text>Volver a lista</Text>
       </Pressable>
 
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Pressable
-          onPress={goList}
-          style={{ flex: 1, padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
-        >
-          <Text>Ir a lista</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={goHome}
-          style={{ flex: 1, padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
-        >
-          <Text>Ir a Home</Text>
-        </Pressable>
-      </View>
+      <Pressable
+        onPress={() => router.replace('/(tabs)')}
+        style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+      >
+        <Text>Ir a Home</Text>
+      </Pressable>
     </ScrollView>
   )
 }
