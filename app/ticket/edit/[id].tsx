@@ -1,7 +1,19 @@
+// app/ticket/edit/[id].tsx
+import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { Text, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, View } from 'react-native'
-import { useLocalSearchParams, router } from 'expo-router'
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, View, Pressable } from 'react-native'
 import { supabase } from '../../../src/lib/supabase'
+
+type Ticket = {
+  id: string
+  customer_name: string
+  sid: string
+  floor: string
+  location_optional: string | null
+  problem_es: string
+  solution_es: string | null
+  status: 'open' | 'resolved'
+}
 
 export default function TicketEdit() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -14,49 +26,63 @@ export default function TicketEdit() {
   const [locationOptional, setLocationOptional] = useState('')
   const [problemEs, setProblemEs] = useState('')
   const [solutionEs, setSolutionEs] = useState('')
-
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [resolution, setResolution] = useState('')
-
-  async function load() {
-    if (!id) return
-    setLoading(true)
-    const { data, error } = await supabase.from('tickets').select('*').eq('id', id).single()
-
-    if (error) {
-      console.log('EDIT load error:', error)
-      Alert.alert('Error', 'No se pudo cargar el ticket.')
-      setLoading(false)
-      return
-    }
-
-    setCustomerName(data.customer_name ?? '')
-    setSid(data.sid ?? '')
-    setFloor(data.floor ?? '')
-    setLocationOptional(data.location_optional ?? '')
-    setProblemEs(data.problem_es ?? '')
-    setSolutionEs(data.solution_es ?? '')
-
-    setTitle(data.short_en ?? '')
-    setDescription(data.long_en ?? '')
-    setResolution(data.resolution_en ?? '')
-
-    setLoading(false)
-  }
+  const [status, setStatus] = useState<'open' | 'resolved'>('open')
 
   useEffect(() => {
+    async function load() {
+      if (!id || typeof id !== 'string') return
+
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (error || !data) {
+        console.log('LOAD ticket edit error:', error)
+        Alert.alert('Error', 'No se pudo cargar el ticket.')
+        router.replace('/tickets')
+        return
+      }
+
+      const t = data as Ticket
+      setCustomerName(t.customer_name)
+      setSid(t.sid)
+      setFloor(t.floor)
+      setLocationOptional(t.location_optional ?? '')
+      setProblemEs(t.problem_es)
+      setSolutionEs(t.solution_es ?? '')
+      setStatus(t.status)
+
+      setLoading(false)
+    }
+
     load()
   }, [id])
 
+  function buildSummary() {
+    const p = problemEs.trim()
+    const s = solutionEs.trim()
+
+    const title = p ? `Reporte: ${p.slice(0, 60)}` : null
+    const description = p ? `Solicitud del usuario.\n\nDetalles:\n${p}\n` : null
+    const resolution = s ? `Resolución:\n${s}` : null
+
+    return { title, description, resolution }
+  }
+
   async function save() {
-    if (!id) return
+    if (!id || typeof id !== 'string') return
+
     if (!customerName.trim() || !sid.trim() || !floor.trim() || !problemEs.trim()) {
       return Alert.alert('Faltan datos', 'Nombre, SID, Piso y Problema son obligatorios.')
     }
 
     setSaving(true)
     try {
+      const { title, description, resolution } = buildSummary()
+
       const payload = {
         customer_name: customerName.trim(),
         sid: sid.trim(),
@@ -64,10 +90,10 @@ export default function TicketEdit() {
         location_optional: locationOptional.trim() || null,
         problem_es: problemEs.trim(),
         solution_es: solutionEs.trim() || null,
-        short_en: title.trim() || null,
-        long_en: description.trim() || null,
-        resolution_en: resolution.trim() || null,
-        status: (solutionEs.trim() || resolution.trim()) ? 'resolved' : 'open',
+        title,
+        description,
+        resolution,
+        status,
       }
 
       const { error } = await supabase.from('tickets').update(payload).eq('id', id)
@@ -130,7 +156,7 @@ export default function TicketEdit() {
         style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
       />
 
-      <Text style={{ fontWeight: '800' }}>Solución (opcional)</Text>
+      <Text style={{ fontWeight: '800' }}>Solución (texto)</Text>
       <TextInput
         value={solutionEs}
         onChangeText={setSolutionEs}
@@ -138,35 +164,32 @@ export default function TicketEdit() {
         style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
       />
 
-      <Text style={{ marginTop: 10, fontWeight: '800' }}>Resumen</Text>
-
-      <Text style={{ fontWeight: '800' }}>Título</Text>
-      <TextInput
-        value={title}
-        onChangeText={setTitle}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
-
-      <Text style={{ fontWeight: '800' }}>Descripción</Text>
-      <TextInput
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 110 }}
-      />
-
-      <Text style={{ fontWeight: '800' }}>Resolución</Text>
-      <TextInput
-        value={resolution}
-        onChangeText={setResolution}
-        multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
-      />
+      {/* Estado */}
+      <Text style={{ fontWeight: '800', marginTop: 10 }}>Estado</Text>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {(['open', 'resolved'] as const).map((value) => (
+          <Pressable
+            key={value}
+            onPress={() => setStatus(value)}
+            style={{
+              flex: 1,
+              paddingVertical: 8,
+              borderWidth: 1,
+              borderRadius: 10,
+              alignItems: 'center',
+              backgroundColor: status === value ? '#ddd' : 'transparent',
+            }}
+          >
+            <Text>{value === 'open' ? 'open' : 'resolved'}</Text>
+          </Pressable>
+        ))}
+      </View>
 
       <Pressable
         onPress={save}
         disabled={saving}
         style={{
+          marginTop: 10,
           padding: 14,
           borderWidth: 1,
           borderRadius: 10,
@@ -179,7 +202,7 @@ export default function TicketEdit() {
 
       <Pressable
         onPress={() => router.replace(`/ticket/${id}`)}
-        style={{ padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+        style={{ padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center', marginTop: 6 }}
       >
         <Text>Cancelar</Text>
       </Pressable>
