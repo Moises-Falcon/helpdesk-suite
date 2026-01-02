@@ -1,4 +1,4 @@
-// app/ticket/edit/[id].tsx
+// 1app/ticket/edit/[id].tsx
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
