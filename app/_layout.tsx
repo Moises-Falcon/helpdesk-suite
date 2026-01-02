@@ -31,14 +31,33 @@ export default function RootLayout() {
 
   return (
     <Stack>
-      {/* Tabs de la app (Home / Explore) */}
+      {/* Tabs principales (Home / Explore) */}
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-      {/* Módulo Tickets */}
+      {/* Tickets */}
       <Stack.Screen name="tickets" options={{ title: 'Tickets' }} />
       <Stack.Screen name="ticket-new" options={{ title: 'Nuevo ticket' }} />
       <Stack.Screen name="ticket/[id]" options={{ title: 'Detalle de ticket' }} />
       <Stack.Screen name="ticket/edit/[id]" options={{ title: 'Editar ticket' }} />
+
+      {/* Inventario */}
+      <Stack.Screen name="inventory" options={{ title: 'Inventario' }} />
+      <Stack.Screen name="inventory/index" options={{ title: 'Inventario' }} />
+      <Stack.Screen name="inventory/new" options={{ title: 'Nuevo equipo' }} />
+      <Stack.Screen name="inventory/[id]" options={{ title: 'Detalle de equipo' }} />
+      <Stack.Screen
+        name="inventory/categories"
+        options={{ title: 'Categorías de inventario' }}
+      />
+      <Stack.Screen
+        name="inventory/locations"
+        options={{ title: 'Ubicaciones de inventario' }}
+      />
+      <Stack.Screen
+        name="inventory/reports"
+        options={{ title: 'Reportes de inventario' }}
+      />
     </Stack>
   )
 }
+
