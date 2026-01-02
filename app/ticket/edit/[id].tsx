@@ -1,12 +1,7 @@
-// 1app/ticket/edit/[id].tsx
-import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Text, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, View } from 'react-native'
+import { useLocalSearchParams, router } from 'expo-router'
 import { supabase } from '../../../src/lib/supabase'
-
-function isUuid(v: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
-}
 
 export default function TicketEdit() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -19,22 +14,20 @@ export default function TicketEdit() {
   const [locationOptional, setLocationOptional] = useState('')
   const [problemEs, setProblemEs] = useState('')
   const [solutionEs, setSolutionEs] = useState('')
-  const [shortTitle, setShortTitle] = useState('')
+
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [resolution, setResolution] = useState('')
 
   async function load() {
-    if (!id || typeof id !== 'string') return
-    if (!isUuid(id)) {
-      router.replace('/tickets')
-      return
-    }
-
+    if (!id) return
     setLoading(true)
     const { data, error } = await supabase.from('tickets').select('*').eq('id', id).single()
 
     if (error) {
-      console.log('LOAD ticket edit error:', error)
-      Alert.alert('Error', error.message)
-      router.replace('/tickets')
+      console.log('EDIT load error:', error)
+      Alert.alert('Error', 'No se pudo cargar el ticket.')
+      setLoading(false)
       return
     }
 
@@ -44,7 +37,11 @@ export default function TicketEdit() {
     setLocationOptional(data.location_optional ?? '')
     setProblemEs(data.problem_es ?? '')
     setSolutionEs(data.solution_es ?? '')
-    setShortTitle(data.short_en ?? '')
+
+    setTitle(data.short_en ?? '')
+    setDescription(data.long_en ?? '')
+    setResolution(data.resolution_en ?? '')
+
     setLoading(false)
   }
 
@@ -53,10 +50,9 @@ export default function TicketEdit() {
   }, [id])
 
   async function save() {
-    if (!id || typeof id !== 'string' || !isUuid(id)) return
+    if (!id) return
     if (!customerName.trim() || !sid.trim() || !floor.trim() || !problemEs.trim()) {
-      Alert.alert('Faltan datos', 'Nombre, SID, Piso y Problema son obligatorios.')
-      return
+      return Alert.alert('Faltan datos', 'Nombre, SID, Piso y Problema son obligatorios.')
     }
 
     setSaving(true)
@@ -68,12 +64,13 @@ export default function TicketEdit() {
         location_optional: locationOptional.trim() || null,
         problem_es: problemEs.trim(),
         solution_es: solutionEs.trim() || null,
-        short_en: shortTitle.trim() || null,
-        status: solutionEs.trim() ? 'resolved' : 'open',
+        short_en: title.trim() || null,
+        long_en: description.trim() || null,
+        resolution_en: resolution.trim() || null,
+        status: (solutionEs.trim() || resolution.trim()) ? 'resolved' : 'open',
       }
 
       const { error } = await supabase.from('tickets').update(payload).eq('id', id)
-
       if (error) throw error
 
       router.replace(`/ticket/${id}`)
@@ -95,14 +92,6 @@ export default function TicketEdit() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
       <Text style={{ fontSize: 22, fontWeight: '800' }}>✏️ Editar Ticket</Text>
-      <Text style={{ opacity: 0.7 }}>ID: {id}</Text>
-
-      <Text style={{ fontWeight: '800' }}>Título</Text>
-      <TextInput
-        value={shortTitle}
-        onChangeText={setShortTitle}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
 
       <Text style={{ fontWeight: '800' }}>Nombre</Text>
       <TextInput
@@ -138,7 +127,7 @@ export default function TicketEdit() {
         value={problemEs}
         onChangeText={setProblemEs}
         multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 110 }}
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
       />
 
       <Text style={{ fontWeight: '800' }}>Solución (opcional)</Text>
@@ -146,7 +135,32 @@ export default function TicketEdit() {
         value={solutionEs}
         onChangeText={setSolutionEs}
         multiline
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
+      />
+
+      <Text style={{ marginTop: 10, fontWeight: '800' }}>Resumen</Text>
+
+      <Text style={{ fontWeight: '800' }}>Título</Text>
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>Descripción</Text>
+      <TextInput
+        value={description}
+        onChangeText={setDescription}
+        multiline
         style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 110 }}
+      />
+
+      <Text style={{ fontWeight: '800' }}>Resolución</Text>
+      <TextInput
+        value={resolution}
+        onChangeText={setResolution}
+        multiline
+        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
       />
 
       <Pressable
