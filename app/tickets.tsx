@@ -1,8 +1,10 @@
 // app/tickets.tsx
-import React, { useEffect, useState, useMemo } from 'react'
-import { View, Text, Pressable, FlatList, ActivityIndicator, TextInput } from 'react-native'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
+import React, { useMemo, useState } from 'react'
+import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native'
 import { supabase } from '../src/lib/supabase'
+
+import { useCallback } from 'react'
 
 type TicketRow = {
   id: string
@@ -36,9 +38,11 @@ export default function TicketsScreen() {
     setLoading(false)
   }
 
-  useEffect(() => {
+useFocusEffect(
+  useCallback(() => {
     loadTickets()
   }, [])
+)
 
   const filteredItems = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -148,11 +152,17 @@ export default function TicketsScreen() {
 
               {/* Estado */}
               <Text style={{ marginTop: 6 }}>
-                Estado:{' '}
-                <Text style={{ fontWeight: '800' }}>
-                  {item.status === 'open' ? 'open' : 'resolved'}
-                </Text>
-              </Text>
+  Estado:{' '}
+  <Text
+    style={{
+      fontWeight: '900',
+      color: item.status === 'open' ? 'red' : 'green',
+    }}
+  >
+    {item.status === 'open' ? 'Abierto' : 'Resuelto'}
+  </Text>
+</Text>
+
             </Pressable>
           )}
         />
