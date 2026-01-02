@@ -1,3 +1,4 @@
+// app/_layout.tsx
 import React, { useEffect, useState } from 'react'
 import { View, ActivityIndicator } from 'react-native'
 import { Stack } from 'expo-router'

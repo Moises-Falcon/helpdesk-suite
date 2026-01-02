@@ -26,13 +26,14 @@ export default function TicketDetail() {
 
   async function load() {
     if (!id || typeof id !== 'string') return
-    // si id = 'tickets' u otro string raro, mandamos a lista
+
     if (id === 'tickets' || id === 'edit') {
       router.replace('/tickets')
       return
     }
 
     setLoading(true)
+
     const { data, error } = await supabase
       .from('tickets')
       .select('*')
@@ -40,12 +41,12 @@ export default function TicketDetail() {
       .single()
 
     if (error) {
-      console.log('LOAD ticket error:', error)
       Alert.alert('Error', 'No se pudo cargar el ticket.')
       setT(null)
     } else {
       setT(data as Ticket)
     }
+
     setLoading(false)
   }
 
@@ -63,13 +64,14 @@ export default function TicketDetail() {
 
   if (!t) {
     return (
-      <View style={{ flex: 1, padding: 16, gap: 12 }}>
+      <View style={{ flex: 1, padding: 16 }}>
         <Text>No se encontró el ticket.</Text>
+
         <Pressable
           onPress={() => router.replace('/tickets')}
-          style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+          style={{ padding: 10, borderWidth: 1, borderRadius: 10, marginTop: 10 }}
         >
-          <Text>Ir a lista</Text>
+          <Text>Volver</Text>
         </Pressable>
       </View>
     )
@@ -78,83 +80,58 @@ export default function TicketDetail() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
       <Text style={{ fontSize: 22, fontWeight: '800' }}>🎫 Detalle del Ticket</Text>
-      <Text style={{ opacity: 0.7 }}>ID: {t.id}</Text>
+
       <Text style={{ opacity: 0.7 }}>
         Creado: {new Date(t.created_at).toLocaleString()}
       </Text>
 
-      {/* Pequeña línea separadora */}
       <View style={{ height: 1, backgroundColor: '#ddd', marginVertical: 10 }} />
 
-      {/* Título */}
       <Text style={{ fontWeight: '800' }}>Título</Text>
       <Text>{t.title ?? '-'}</Text>
 
-      {/* Solicitante */}
-      <View style={{ marginTop: 10 }}>
-        <Text style={{ fontWeight: '800' }}>Solicitante</Text>
-        <Text>
-          {t.customer_name} • SID {t.sid} • Piso {t.floor}
+      <Text style={{ fontWeight: '800' }}>Solicitante</Text>
+      <Text>
+        {t.customer_name} • SID {t.sid} • Piso {t.floor}
+      </Text>
+      <Text>Ubicación: {t.location_optional ?? '-'}</Text>
+
+      <Text style={{ fontWeight: '800' }}>Problema</Text>
+      <Text>{t.problem_es}</Text>
+
+      <Text style={{ fontWeight: '800' }}>Solución</Text>
+      <Text>{t.solution_es ?? '-'}</Text>
+
+      <Text style={{ fontWeight: '800' }}>Descripción</Text>
+      <Text>{t.description ?? '-'}</Text>
+
+      <Text style={{ fontWeight: '800' }}>Resolución</Text>
+      <Text>{t.resolution ?? '-'}</Text>
+
+      <Text style={{ fontWeight: '800' }}>
+        Estado:{' '}
+        <Text
+          style={{
+            color: t.status === 'open' ? 'red' : 'green',
+            fontWeight: '900',
+          }}
+        >
+          {t.status === 'open' ? 'Abierto' : 'Resuelto'}
         </Text>
-        <Text>Ubicación: {t.location_optional ?? '-'}</Text>
-      </View>
-
-      {/* Problema */}
-      <View style={{ marginTop: 10 }}>
-        <Text style={{ fontWeight: '800' }}>Problema</Text>
-        <Text>{t.problem_es}</Text>
-      </View>
-
-      {/* Solución texto */}
-      <View style={{ marginTop: 10 }}>
-        <Text style={{ fontWeight: '800' }}>Solución (texto)</Text>
-        <Text>{t.solution_es ?? '-'}</Text>
-      </View>
-
-      {/* Descripción / Resumen largo */}
-      <View style={{ marginTop: 10 }}>
-        <Text style={{ fontWeight: '800' }}>Descripción</Text>
-        <Text>{t.description ?? '-'}</Text>
-      </View>
-
-      {/* Resolución formateada */}
-      <View style={{ marginTop: 10 }}>
-        <Text style={{ fontWeight: '800' }}>Resolución</Text>
-        <Text>{t.resolution ?? '-'}</Text>
-      </View>
-
-      {/* Estado */}
-      <View style={{ marginTop: 10 }}>
-        <Text>
-          Estado:{' '}
-          <Text style={{ fontWeight: '800' }}>
-            {t.status === 'open' ? 'open' : 'resolved'}
-          </Text>
-        </Text>
-      </View>
-
-      {/* Botones */}
-      <View style={{ height: 1, backgroundColor: '#ddd', marginVertical: 10 }} />
+      </Text>
 
       <Pressable
         onPress={() => router.push(`/ticket/edit/${t.id}`)}
-        style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center', marginBottom: 6 }}
+        style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}
       >
         <Text>Editar</Text>
       </Pressable>
 
       <Pressable
-        onPress={load}
-        style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center', marginBottom: 6 }}
-      >
-        <Text>Recargar</Text>
-      </Pressable>
-
-      <Pressable
         onPress={() => router.replace('/tickets')}
-        style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
+        style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}
       >
-        <Text>Volver a la lista</Text>
+        <Text>Volver a lista</Text>
       </Pressable>
     </ScrollView>
   )

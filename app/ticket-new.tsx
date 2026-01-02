@@ -1,6 +1,6 @@
 // app/ticket-new.tsx
-import React, { useEffect, useState } from 'react'
-import { Text, TextInput, Pressable, Alert, ScrollView } from 'react-native'
+import React, { useState } from 'react'
+import { Text, TextInput, Pressable, Alert, ScrollView, View } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '../src/lib/supabase'
 import { loadSession } from '../src/lib/session'
@@ -14,8 +14,8 @@ export default function TicketNew() {
   const [locationOptional, setLocationOptional] = useState('')
   const [problemEs, setProblemEs] = useState('')
   const [solutionEs, setSolutionEs] = useState('')
+  const [status, setStatus] = useState<'open' | 'resolved'>('open')
 
-  // Generamos título/descripcion/resolución internamente (no se muestran aparte)
   function buildSummary() {
     const p = problemEs.trim()
     const s = solutionEs.trim()
@@ -28,32 +28,35 @@ export default function TicketNew() {
   }
 
   async function save() {
-    if (!customerName.trim() || !sid.trim() || !floor.trim() || !problemEs.trim()) {
-      return Alert.alert('Faltan datos', 'Nombre, SID, Piso y Problema son obligatorios.')
-    }
+    if (!customerName || !sid || !floor || !problemEs)
+      return Alert.alert('Faltan datos', 'Completa nombre, SID, piso y problema.')
 
     setSaving(true)
+
     try {
       const session = await loadSession()
-      if (!session?.id) throw new Error('No hay sesión. Cierra sesión y vuelve a iniciar.')
+      if (!session?.id) throw new Error('No hay sesión activa')
 
       const { title, description, resolution } = buildSummary()
 
-      const payload = {
-        created_by: session.id,
-        customer_name: customerName.trim(),
-        sid: sid.trim(),
-        floor: floor.trim(),
-        location_optional: locationOptional.trim() || null,
-        problem_es: problemEs.trim(),
-        solution_es: solutionEs.trim() || null,
-        title,
-        description,
-        resolution,
-        status: solutionEs.trim() ? 'resolved' : 'open',
-      }
+      const { data, error } = await supabase
+        .from('tickets')
+        .insert({
+          created_by: session.id,
+          customer_name: customerName.trim(),
+          sid: sid.trim(),
+          floor: floor.trim(),
+          location_optional: locationOptional.trim() || null,
+          problem_es: problemEs.trim(),
+          solution_es: solutionEs.trim() || null,
+          title,
+          description,
+          resolution,
+          status,
+        })
+        .select('id')
+        .single()
 
-      const { data, error } = await supabase.from('tickets').insert(payload).select('id').single()
       if (error) throw error
 
       router.replace(`/ticket/${data.id}`)
@@ -68,70 +71,61 @@ export default function TicketNew() {
     <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
       <Text style={{ fontSize: 22, fontWeight: '800' }}>➕ Nuevo Ticket</Text>
 
-      <Text style={{ fontWeight: '800' }}>Nombre</Text>
-      <TextInput
-        value={customerName}
-        onChangeText={setCustomerName}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
+      <Text>Nombre</Text>
+      <TextInput style={{ borderWidth: 1, padding: 10 }} value={customerName} onChangeText={setCustomerName} />
 
-      <Text style={{ fontWeight: '800' }}>SID</Text>
-      <TextInput
-        value={sid}
-        onChangeText={setSid}
-        autoCapitalize="none"
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
+      <Text>SID</Text>
+      <TextInput style={{ borderWidth: 1, padding: 10 }} value={sid} onChangeText={setSid} />
 
-      <Text style={{ fontWeight: '800' }}>Piso</Text>
-      <TextInput
-        value={floor}
-        onChangeText={setFloor}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
+      <Text>Piso</Text>
+      <TextInput style={{ borderWidth: 1, padding: 10 }} value={floor} onChangeText={setFloor} />
 
-      <Text style={{ fontWeight: '800' }}>Ubicación (opcional)</Text>
-      <TextInput
-        value={locationOptional}
-        onChangeText={setLocationOptional}
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8 }}
-      />
+      <Text>Ubicación (opcional)</Text>
+      <TextInput style={{ borderWidth: 1, padding: 10 }} value={locationOptional} onChangeText={setLocationOptional} />
 
-      <Text style={{ fontWeight: '800' }}>Problema</Text>
+      <Text>Problema</Text>
       <TextInput
+        style={{ borderWidth: 1, padding: 10, minHeight: 80 }}
+        multiline
         value={problemEs}
         onChangeText={setProblemEs}
-        multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
       />
 
-      <Text style={{ fontWeight: '800' }}>Solución (opcional)</Text>
+      <Text>Solución (opcional)</Text>
       <TextInput
+        style={{ borderWidth: 1, padding: 10, minHeight: 80 }}
+        multiline
         value={solutionEs}
         onChangeText={setSolutionEs}
-        multiline
-        style={{ borderWidth: 1, padding: 10, borderRadius: 8, minHeight: 90 }}
       />
+
+      <Text>Estado</Text>
+
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {(['open', 'resolved'] as const).map((value) => (
+          <Pressable
+            key={value}
+            onPress={() => setStatus(value)}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderWidth: 1,
+              borderRadius: 10,
+              alignItems: 'center',
+              backgroundColor: status === value ? '#ddd' : 'transparent',
+            }}
+          >
+            <Text>{value === 'open' ? 'Abierto' : 'Resuelto'}</Text>
+          </Pressable>
+        ))}
+      </View>
 
       <Pressable
         onPress={save}
         disabled={saving}
-        style={{
-          padding: 14,
-          borderWidth: 1,
-          borderRadius: 10,
-          alignItems: 'center',
-          opacity: saving ? 0.6 : 1,
-        }}
+        style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
       >
-        <Text>{saving ? 'Guardando...' : 'Guardar ticket'}</Text>
-      </Pressable>
-
-      <Pressable
-        onPress={() => router.replace('/tickets')}
-        style={{ padding: 14, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
-      >
-        <Text>Cancelar</Text>
+        <Text>{saving ? 'Guardando…' : 'Guardar ticket'}</Text>
       </Pressable>
     </ScrollView>
   )

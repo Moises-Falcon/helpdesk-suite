@@ -1,10 +1,8 @@
 // app/tickets.tsx
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import { View, Text, Pressable, FlatList, ActivityIndicator, TextInput } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
-import React, { useMemo, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native'
 import { supabase } from '../src/lib/supabase'
-
-import { useCallback } from 'react'
 
 type TicketRow = {
   id: string
@@ -38,11 +36,11 @@ export default function TicketsScreen() {
     setLoading(false)
   }
 
-useFocusEffect(
-  useCallback(() => {
-    loadTickets()
-  }, [])
-)
+  useFocusEffect(
+    useCallback(() => {
+      loadTickets()
+    }, [])
+  )
 
   const filteredItems = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -56,7 +54,7 @@ useFocusEffect(
         t.floor,
         t.title ?? '',
         t.status,
-        new Date(t.created_at).toLocaleString(), // también entra en la búsqueda
+        new Date(t.created_at).toLocaleString(),
       ]
         .join(' ')
         .toLowerCase()
@@ -68,7 +66,7 @@ useFocusEffect(
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={{ fontSize: 22, fontWeight: '800' }}>🎫 Tickets</Text>
 
         <Pressable
@@ -87,7 +85,7 @@ useFocusEffect(
         style={{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 }}
       />
 
-      {/* Filtros por estado */}
+      {/* Filtros estado */}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {(['all', 'open', 'resolved'] as const).map((value) => (
           <Pressable
@@ -109,66 +107,49 @@ useFocusEffect(
         ))}
       </View>
 
-      {/* Recargar */}
-      <Pressable
-        onPress={loadTickets}
-        style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
-      >
-        <Text>Recargar</Text>
-      </Pressable>
-
       {/* Lista */}
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" />
-          <Text style={{ marginTop: 8 }}>Cargando...</Text>
+          <Text>Cargando...</Text>
         </View>
       ) : (
         <FlatList
           data={filteredItems}
           keyExtractor={(t) => t.id}
-          ListEmptyComponent={
-            <Text style={{ opacity: 0.7, marginTop: 10 }}>
-              No hay tickets con esos filtros. Crea uno nuevo con “+ Nuevo”.
-            </Text>
-          }
+          ListEmptyComponent={<Text>No hay tickets.</Text>}
           renderItem={({ item }) => (
             <Pressable
               onPress={() => router.push(`/ticket/${item.id}`)}
               style={{ borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 10 }}
             >
-              {/* Título */}
               <Text style={{ fontWeight: '800' }}>{item.title ?? '(sin título)'}</Text>
 
-              {/* Fecha de creación */}
-              <Text style={{ opacity: 0.6, fontSize: 12, marginTop: 2 }}>
-                Creado: {new Date(item.created_at).toLocaleString()}
+              <Text style={{ opacity: 0.6, fontSize: 12 }}>
+                {new Date(item.created_at).toLocaleString()}
               </Text>
 
-              {/* Datos básicos */}
-              <Text style={{ opacity: 0.75, marginTop: 4 }}>
+              <Text style={{ opacity: 0.75, marginTop: 2 }}>
                 {item.customer_name} • SID {item.sid} • Piso {item.floor}
               </Text>
 
-              {/* Estado */}
               <Text style={{ marginTop: 6 }}>
-  Estado:{' '}
-  <Text
-    style={{
-      fontWeight: '900',
-      color: item.status === 'open' ? 'red' : 'green',
-    }}
-  >
-    {item.status === 'open' ? 'Abierto' : 'Resuelto'}
-  </Text>
-</Text>
-
+                Estado:{' '}
+                <Text
+                  style={{
+                    fontWeight: '900',
+                    color: item.status === 'open' ? 'green' : 'red',
+                  }}
+                >
+                  {item.status === 'open' ? 'Abierto' : 'Resuelto'}
+                </Text>
+              </Text>
             </Pressable>
           )}
         />
       )}
 
-      {/* Ir a Home */}
+      {/* Home */}
       <Pressable
         onPress={() => router.replace('/(tabs)')}
         style={{ padding: 12, borderWidth: 1, borderRadius: 10, alignItems: 'center' }}
