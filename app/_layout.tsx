@@ -41,8 +41,8 @@ export default function RootLayout() {
       <Stack.Screen name="ticket/edit/[id]" options={{ title: 'Editar ticket' }} />
 
       {/* Inventario */}
+      {/* app/inventory/index.tsx → ruta /inventory */}
       <Stack.Screen name="inventory" options={{ title: 'Inventario' }} />
-      <Stack.Screen name="inventory/index" options={{ title: 'Inventario' }} />
       <Stack.Screen name="inventory/new" options={{ title: 'Nuevo equipo' }} />
       <Stack.Screen name="inventory/[id]" options={{ title: 'Detalle de equipo' }} />
       <Stack.Screen
@@ -60,4 +60,3 @@ export default function RootLayout() {
     </Stack>
   )
 }
-
